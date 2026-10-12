@@ -54,7 +54,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node --check lib/client.js && node --check lib/index.js",
-    "test": "node scripts/smoke-test.mjs",
+    "test": "node scripts/smoke-test.mjs && node scripts/render-test.mjs",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm test"
   },
@@ -82,8 +82,11 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
+    "@types/react-dom": "^19.3.0",
     "esbuild": "^0.23.0",
     "jsdom": "^29.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5.6.0"
   },
   "license": "MIT",

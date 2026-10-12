@@ -58,7 +58,8 @@ GitHub 在本机不可达（443 连不通），因此 `src/` 是**从上游 npm 
 npm install
 npm run build      # → lib/client.js、lib/index.js
 npm run check      # node --check 两个产物
-npm test           # jsdom 里跑 apply()，断言注册出的座位
+npm test           # smoke-test: jsdom 里跑 apply()，断言注册出的座位
+                   # render-test: jsdom 里真渲染「词库设置」页，断言新折叠项 + 四个 Tab
 npm run typecheck  # 需要 @deepseek-ai/* 的类型包，未装时会有 TS2307 噪声
 ```
 
