@@ -163,6 +163,12 @@ const tabIcons = [...document.querySelectorAll('[role="tab"]')].map((el) => {
 check(tabIcons.every((t) => t.hasSvg && t.children > 0), "四个 Tab 的图标都是真实 SVG",
   JSON.stringify(tabIcons));
 
+// 回归防护：.pl-dialog *的 scrollbar-gutter 会把 svg 计算宽度压成 0（图标整块被裁掉），
+// 必须带 `.pl-dialog svg{scrollbar-gutter:auto}` 这条修正（jsdom 不做布局，只能断言样式文本）
+const panelCss = [...document.querySelectorAll("style")].map((el) => el.textContent || "").join("\n");
+check(/\.pl-dialog svg\s*\{[^}]*scrollbar-gutter:\s*auto/.test(panelCss), "面板样式含 svg 宽度修正（scrollbar-gutter:auto）",
+  /scrollbar-gutter/.test(panelCss) ? "" : "样式块里没找到 scrollbar-gutter");
+
 // 最大化 / 还原
 const maxBtn = panel ? [...panel.querySelectorAll("button")].find((b) => (b.getAttribute("data-tip") || "").includes("最大化")) : null;
 check(Boolean(maxBtn), "面板有最大化按钮");
