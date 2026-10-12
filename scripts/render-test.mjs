@@ -130,29 +130,60 @@ const text = document.body.textContent || "";
 check(text.includes("词库设置"), "设置页标题「词库设置」已渲染");
 check(!document.querySelector("[data-pl-sa-wrap]"), "注入式按钮 [data-pl-sa-wrap] 不存在");
 
-const headers = [...document.querySelectorAll('[role="button"][aria-expanded]')];
-// 注意：「AI 模型」的说明里也含「词库」二字，这里按本卡片独有的说明文案精确定位
-const card = headers.find((el) => (el.textContent || "").includes("回收站的统一入口"));
-check(Boolean(card), "存在「词库」折叠项", card ? `（共 ${headers.length} 个分类项）` : "");
-check(headers[headers.length - 1] === card, "折叠项位于设置页最底部（「关于」之后）");
-const cardOrder = headers.map((el) => (el.textContent || "").split("数据")[0].slice(0, 6));
-console.log("     分类顺序：" + cardOrder.join(" / "));
-check(document.querySelectorAll('[role="tab"]').length === 0, "默认折叠：展开前没有 Tab");
+// —— 入口卡片：可点击（aria-haspopup=dialog），且排在设置页最底部 ——
+const entries = [...document.querySelectorAll('[role="button"][aria-haspopup="dialog"]')];
+const entry = entries.find((el) => (el.textContent || "").includes("回收站的统一入口"));
+check(Boolean(entry), "存在「词库」入口卡片");
+const sections = [...document.querySelectorAll("section")];
+check(entry?.closest("section") === sections[sections.length - 1], "入口卡片位于设置页最底部（「关于」之后）");
+check(document.querySelectorAll('[role="tab"]').length === 0, "未点击时没有面板");
 
-if (card) {
-  card.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
-  await tick();
-  const tabs = [...document.querySelectorAll('[role="tab"]')].map((el) => (el.textContent || "").trim());
-  const want = ["数据管理", "导入导出", "标签", "回收站"];
-  check(JSON.stringify(tabs) === JSON.stringify(want), "展开后四个 Tab 正确", JSON.stringify(tabs));
-  const boom2 = document.getElementById("render-error");
-  check(!boom2, "展开后渲染无异常", boom2 ? "\n" + boom2.textContent.slice(0, 600) : "");
-}
+// —— 点击入口 → 弹出独立面板 ——
+entry?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+await tick();
+
+const panel = document.querySelector('[role="dialog"][aria-modal="true"]');
+check(Boolean(panel), "点击后弹出独立面板");
+check(panel?.parentElement === document.body, "面板独立于设置页（portal 到 body）");
+const surface = panel?.querySelector(".pl-dialog");
+check(surface?.style.width === "850px", "面板宽度 850px（不再被设置页 520px 列压扁）", surface?.style.width || "");
+const tabs = [...document.querySelectorAll('[role="tab"]')].map((el) => (el.textContent || "").trim());
+check(JSON.stringify(tabs) === JSON.stringify(["数据管理", "导入导出", "标签", "回收站"]), "面板内四个 Tab 正确", JSON.stringify(tabs));
+const boom2 = document.getElementById("render-error");
+check(!boom2, "面板打开后渲染无异常", boom2 ? "\n" + boom2.textContent.slice(0, 600) : "");
+// 关键：功能模块要真的渲染进面板内容区（而不是只有 Tab 是空的）
+const panelText = panel?.textContent || "";
+check(panelText.includes("提示词列表"), "数据管理模块已内嵌进面板", panelText.includes("提示词列表") ? "" : panelText.slice(0, 120));
+
+// 最大化 / 还原
+const maxBtn = panel ? [...panel.querySelectorAll("button")].find((b) => (b.getAttribute("data-tip") || "").includes("最大化")) : null;
+check(Boolean(maxBtn), "面板有最大化按钮");
+maxBtn?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+await tick();
+check(Boolean(document.querySelector(".pl-dialog--max")), "点击最大化后面板铺满");
+const restoreBtn = [...document.querySelectorAll("button")].find((b) => (b.getAttribute("data-tip") || "").includes("还原"));
+restoreBtn?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+await tick();
+check(!document.querySelector(".pl-dialog--max"), "可还原为居中面板");
+
+// —— 关闭：✕ 与 Esc ——
+const closeBtn = panel ? [...panel.querySelectorAll("button")].find((b) => (b.textContent || "").includes("✕")) : null;
+check(Boolean(closeBtn), "面板有关闭按钮 ✕");
+closeBtn?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+await tick();
+check(!document.querySelector('[role="dialog"][aria-modal="true"]'), "点 ✕ 后独立面板关闭");
+
+entry?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+await tick();
+check(Boolean(document.querySelector('[role="dialog"][aria-modal="true"]')), "再次点击入口可重新打开");
+w.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+await tick();
+check(!document.querySelector('[role="dialog"][aria-modal="true"]'), "Esc 可关闭面板");
 
 console.log("");
 if (failures.length) {
   console.error("❌ render test 失败：" + failures.join("；"));
   process.exit(1);
 }
-console.log("✅ render test 通过（设置页渲染 + 折叠项 + 四个 Tab）");
+console.log("✅ render test 通过（入口卡片 → 独立面板 → 四个 Tab → ✕/Esc 关闭）");
 process.exit(0);

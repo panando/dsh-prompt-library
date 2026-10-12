@@ -30,7 +30,7 @@ import {
   type ClientAiSelectable,
 } from "../../utils/api.js";
 import { type PLTranslate, usePLT } from "../../utils/i18n.js";
-import { LibraryPanelContent } from "./LibraryPanelSection.js";
+import { LibraryPanelModal } from "./LibraryPanelSection.js";
 
 const MONO =
   '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", "SimHei", "黑体", sans-serif';
@@ -348,6 +348,65 @@ function SelectRow({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * 可点击的入口卡片：与分类卡片同款式、同位置，但点击是「打开面板」而非「展开内容」，
+ * 因此右侧用指向右的箭头（↗ 语义）与折叠卡片的向下箭头区分。
+ */
+function ModuleAction(props: {
+  title: ReactNode;
+  desc?: ReactNode;
+  onClick: () => void;
+  /** 无障碍标签（读屏时报出这个入口会打开面板）。 */
+  ariaLabel?: string;
+}): ReactNode {
+  const { title, desc, onClick, ariaLabel } = props;
+  return (
+    <section style={moduleStyle}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-label={ariaLabel}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={moduleTitleStyle}>{title}</div>
+          {desc && <div style={moduleDescStyle}>{desc}</div>}
+        </div>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          style={{ flexShrink: 0, color: TONE.muted }}
+          aria-hidden="true"
+        >
+          <path
+            d="M6 4l4 4-4 4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </section>
   );
 }
 
@@ -752,15 +811,14 @@ export function SettingsSection(props?: { t?: PLTranslate }): ReactNode {
         </div>
       </ModuleCard>
 
-      {/* 分类模块六：词库 —— 入口从宿主「设置」按钮上方移入本页，展开即用四项功能 */}
-      <ModuleCard
+      {/* 入口六：词库 —— 入口从宿主「设置」按钮上方移入本页；点击弹出独立面板 */}
+      <ModuleAction
         title={T("pl.setModuleLibrary")}
         desc={T("pl.setModuleLibraryDesc")}
-        open={openLibrary}
-        onToggle={() => setOpenLibrary((v) => !v)}
-      >
-        <LibraryPanelContent t={t} onRequestClose={() => setOpenLibrary(false)} />
-      </ModuleCard>
+        ariaLabel={T("pl.setModuleLibraryOpen")}
+        onClick={() => setOpenLibrary(true)}
+      />
+      <LibraryPanelModal open={openLibrary} onClose={() => setOpenLibrary(false)} t={t} />
     </div>
   );
 }

@@ -1,28 +1,38 @@
 /**
- * 「词库」面板内容 — 设置页内嵌版。
+ * 「词库」独立面板 —— 由「设置 → 词库设置」页里的入口卡片弹出。
  *
- * 取代原先注入到宿主原生「设置」按钮上方的浮动面板：入口收敛为「词库设置」页里的
- * 一条折叠项（与 AI 模型 / 面板显示 / 显示与交互 / 关于 同款式），展开后在这里直接
- * 渲染 数据管理 / 导入导出 / 标签 / 回收站 四个功能。
+ * 为什么是独立面板而不是内嵌折叠项：这套 UI（数据管理 / 导入导出 / 标签 / 回收站）是按
+ * ~800px 宽度设计的，内嵌进设置页那条 520px 的内容列后，列表与详情两栏被同时压扁，
+ * 实际观感就是「太小了」。因此改成点击入口后弹出居中浮层，尺寸与插件内其它弹窗一致
+ * （850×800，可最大化，走 `PL_DIALOG_CSS` 里的官方浮层表面）。
  *
- * 与旧实现的三点差异：
- * 1. 不再用 MutationObserver 往宿主 DOM 里插按钮 —— 那种做法会让同一个按钮同时长在
- *    设置导航顶部和侧边栏左下角菜单里，两处都突兀且无法只关一处；
- * 2. 不再经 `pl:show-panel-content` 窗口事件 + PromptAssistant 中转，直接渲染，
- *    因此不依赖会话页是否挂载；
- * 3. 不再有遮罩 / 最大化 / 关闭按钮 —— 收起折叠项即卸载内容。
+ * 与上游实现的差异：
+ * 1. 不再用 MutationObserver 往宿主「设置」按钮上方注入按钮 —— 那会让同一个按钮同时长在
+ *    设置导航顶部和侧边栏左下角菜单里，且无法只关一处；
+ * 2. 不再经 `pl:show-panel-content` / `pl:hide-panel-content` 窗口事件 + PromptAssistant
+ *    中转，四项功能直接渲染，因此不依赖会话页是否挂载；
+ * 3. 由设置页入口触发，而不是常驻在宿主侧边栏中。
  */
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { type PLKey, type PLTranslate, usePLT } from "../../utils/i18n.js";
-import { PL_DIALOG_CSS } from "../../utils/dialog-style.js";
+import {
+  PL_DIALOG,
+  PL_DIALOG_CSS,
+  PL_DIALOG_MAX,
+  PL_DIALOG_OVERLAY,
+  PL_DIALOG_OVERLAY_MAX,
+} from "../../utils/dialog-style.js";
 import { getTone, useThemeSync } from "../../utils/theme.js";
+import { DialogCloseButton } from "../common/DialogCloseButton.js";
+import { WindowToggleButton } from "../common/WindowToggleButton.js";
+import { PanelHeader } from "../common/PanelHeader.js";
 import { LexiconManagerModal } from "../data/LexiconManagerModal.js";
 import { ImportExportModal } from "../import-export/ImportExportModal.js";
 import { TagManagePanel } from "../data/TagManagePanel.js";
 import { RecycleManagePanel } from "../data/RecycleManagePanel.js";
-import { PanelHeader } from "../common/PanelHeader.js";
 
-/** 导航项（沿用旧浮动面板的四项与配色）。 */
+/** 导航项（沿用上游浮动面板的四项与配色）。 */
 interface NavItem {
   id: string;
   /** i18n 键（用 PLKey 收窄，保证 T(labelKey) 类型安全）。 */
@@ -64,12 +74,13 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-/** 内嵌内容区高度（px）：内嵌 Modal 依赖确定高度铺满并自行滚动。 */
-const CONTENT_HEIGHT = 560;
+/** 默认尺寸（与上游浮动面板一致，随视口自适应）。 */
+const PANEL_WIDTH = 850;
+const PANEL_HEIGHT = 800;
+const PANEL_SHADOW = "0 10px 32px rgba(2,6,23,.2), 0 2px 8px rgba(2,6,23,.1)";
 
 /**
- * 内嵌内容区的布局契约（与旧浮动面板一致）：
- * 内容区是确定高度的 flex 列，Modal 的 [role=dialog] 与 .pl-dialog 依次撑满。
+ * 面板样式：内嵌内容区的布局契约 + Tab 样式 + 官方浮层表面。
  * 内嵌态下 Modal 不会自己注入 PL_DIALOG_CSS，所以这里必须带上。
  */
 const PANEL_CSS = `
@@ -85,7 +96,7 @@ ${PL_DIALOG_CSS}
 /** 按导航项渲染对应功能：能内嵌的 Modal 交给 container，纯面板直接渲染。 */
 function renderModule(
   key: string,
-  T: PLTranslate,
+  T: ReturnType<typeof usePLT>,
   host: HTMLElement,
   onRequestClose: () => void,
 ): ReactNode {
@@ -113,76 +124,159 @@ function renderModule(
   }
 }
 
-/** 「词库」折叠项展开后的内容体（顶部 Tab + 下方功能区）。 */
-export function LibraryPanelContent(props: {
+/**
+ * 「词库」独立面板：居中浮层 + 顶部四 Tab + 内嵌功能区。
+ * 关闭方式：右上角 ✕ 或 Esc（遮罩点击不关闭，与本插件其它弹窗约定一致，避免误触丢失编辑）。
+ */
+export function LibraryPanelModal(props: {
+  open: boolean;
+  onClose: () => void;
   t?: PLTranslate;
-  /** 内嵌 Modal 请求关闭时（如导入完成）收起折叠项。 */
-  onRequestClose?: () => void;
 }): ReactNode {
-  const { t, onRequestClose } = props;
+  const { open, onClose, t } = props;
   const T = usePLT(t);
   const TONE = getTone();
   useThemeSync();
   const [activeKey, setActiveKey] = useState<string>(NAV_ITEMS[0]!.id);
+  const [maximized, setMaximized] = useState(false);
   // 内嵌 Modal 需要真实 DOM 容器：ref 回调拿到元素后再渲染，避免首帧传 null 落到 document.body
   const [host, setHost] = useState<HTMLDivElement | null>(null);
-  const close = (): void => onRequestClose?.();
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+  const close = useCallback((): void => {
+    onClose();
+  }, [onClose]);
+
+  // Esc 关闭
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, close]);
+
+  // 关闭后复位，下次打开回到默认 Tab / 非最大化
+  useEffect(() => {
+    if (!open) {
+      setMaximized(false);
+      setActiveKey(NAV_ITEMS[0]!.id);
+      setHost(null);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={T("pl.title")}
+      className={maximized ? `${PL_DIALOG_OVERLAY} ${PL_DIALOG_OVERLAY_MAX}` : PL_DIALOG_OVERLAY}
+    >
       <style>{PANEL_CSS}</style>
-      {/* 顶部横向 Tab：与旧面板一致的四项功能 */}
       <div
-        role="tablist"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          flexShrink: 0,
-          padding: "2px 0 10px",
-          borderBottom: `1px solid ${TONE.border}`,
-          overflowX: "auto",
-        }}
+        className={maximized ? `${PL_DIALOG} ${PL_DIALOG_MAX}` : PL_DIALOG}
+        style={
+          maximized
+            ? { boxShadow: PANEL_SHADOW }
+            : {
+                width: PANEL_WIDTH,
+                height: PANEL_HEIGHT,
+                maxWidth: "calc(100vw - 40px)",
+                maxHeight: "calc(100vh - 40px)",
+                boxShadow: PANEL_SHADOW,
+              }
+        }
       >
-        {NAV_ITEMS.map((item) => {
-          const active = item.id === activeKey;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              className="pl-lib-tab"
-              style={{ color: TONE.text }}
-              onClick={() => setActiveKey(item.id)}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
-                  flexShrink: 0,
-                  background: item.iconBg,
-                  color: item.iconColor,
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${item.iconBody}</svg>`,
-                }}
-              />
-              <span>{T(item.labelKey)}</span>
-            </button>
-          );
-        })}
-      </div>
-      {/* 功能内容区：确定高度 + 内部滚动 */}
-      <div style={{ height: CONTENT_HEIGHT, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <div className="pl-lib-content" ref={setHost}>
-          {host ? renderModule(activeKey, T, host, close) : null}
+        {/* 标题行：标题 + 最大化 + 关闭 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexShrink: 0,
+            padding: "0 2px 8px",
+          }}
+        >
+          <strong
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: TONE.text,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {T("pl.title")}
+          </strong>
+          <WindowToggleButton
+            maximized={maximized}
+            onToggle={() => setMaximized((v) => !v)}
+            maximizeLabel={T("pl.windowMaximize")}
+            restoreLabel={T("pl.windowRestore")}
+          />
+          <DialogCloseButton onClick={close} label={T("pl.close")} />
+        </div>
+
+        {/* 顶部横向 Tab：四项功能 */}
+        <div
+          role="tablist"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            flexShrink: 0,
+            padding: "2px 0 10px",
+            borderBottom: `1px solid ${TONE.border}`,
+            overflowX: "auto",
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            const active = item.id === activeKey;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className="pl-lib-tab"
+                style={{ color: TONE.text }}
+                onClick={() => setActiveKey(item.id)}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    flexShrink: 0,
+                    background: item.iconBg,
+                    color: item.iconColor,
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${item.iconBody}</svg>`,
+                  }}
+                />
+                <span>{T(item.labelKey)}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 功能内容区：撑满剩余高度，内容自行滚动 */}
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <div className="pl-lib-content" ref={setHost}>
+            {host ? renderModule(activeKey, T, host, close) : null}
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

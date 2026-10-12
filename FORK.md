@@ -12,9 +12,14 @@
 本 fork 的改动：
 
 1. **入口移入设置页**：在「设置 → 词库设置」页底部新增一条与
-   「AI 模型 / 面板显示 / 显示与交互 / 关于」同款式的折叠项「词库」，展开后直接承载原来的
-   四项功能（数据管理 / 导入导出 / 标签 / 回收站）。见
+   「AI 模型 / 面板显示 / 显示与交互 / 关于」同款式的入口卡片「词库」（右侧用指向右的箭头，
+   与折叠卡片的向下箭头区分）。**点击后弹出独立面板**（850×800 居中浮层，可最大化，
+   ✕ / Esc 关闭，走 `PL_DIALOG_CSS` 里官方浮层表面），面板内以四个 Tab 承载
+   数据管理 / 导入导出 / 标签 / 回收站。见
    `src/client/components/settings/LibraryPanelSection.tsx`。
+
+   > 为什么是独立面板而不是内嵌折叠项：这套 UI 按 ~800px 宽度设计，内嵌进设置页那条
+   > 520px 的内容列后，列表与详情两栏会被同时压扁（实测观感就是「太小了」）。
 2. **左下角菜单里的注入按钮彻底移除**：删除 `SettingsAboveMenuButton`（DOM 注入 + 浮动面板
    + 遮罩/最大化/关闭）与随之失效的 `settingsAboveMenuEnabled` 开关（字段保留，仅为兼容
    既有 `settings.json`）。
@@ -58,8 +63,10 @@ GitHub 在本机不可达（443 连不通），因此 `src/` 是**从上游 npm 
 npm install
 npm run build      # → lib/client.js、lib/index.js
 npm run check      # node --check 两个产物
-npm test           # smoke-test: jsdom 里跑 apply()，断言注册出的座位
-                   # render-test: jsdom 里真渲染「词库设置」页，断言新折叠项 + 四个 Tab
+npm test           # smoke-test:  jsdom 里跑 apply()，断言注册出的座位
+                   # render-test: jsdom 里真渲染「词库设置」页，跑完
+                   #              入口卡片 → 点击弹独立面板 → 四个 Tab → 最大化/还原 → ✕/Esc 关闭
+                   #              共 19 条断言（含「数据管理模块确实内嵌进面板」）
 npm run typecheck  # 需要 @deepseek-ai/* 的类型包，未装时会有 TS2307 噪声
 ```
 
