@@ -10,10 +10,14 @@
 import { build } from "esbuild";
 import { readFileSync } from "node:fs";
 
-/** 版本号注入（与上游 lib/index.js 的 __PLUGIN_VERSION__ 分支一致）。 */
-const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-
-const NS = "@sunjuntao/dsh-prompt-library";
+/**
+ * 包名 / 版本号都从 package.json 取，保证与 package.json#name 永远一致
+ * （DSH 客户端模块 id 必须等于包名；改名时不必再改构建脚本）。
+ * version 同时注入 __PLUGIN_VERSION__ 分支（与上游 lib/index.js 行为一致）。
+ */
+const { name: NS, version } = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
 const dev = process.argv.includes("--dev");
 
 /** 客户端外壳：DSH 客户端模块加载器协议（banner/footer 必须保持与上游一致）。 */

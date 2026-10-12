@@ -1,6 +1,13 @@
-# dsh-prompt-library（本地 fork）
+# dsh-prompt-library（@panando fork）
 
-上游：<https://github.com/master1Sun/dsh-prompt-library> · npm `@sunjuntao/dsh-prompt-library@0.17.1`
+- 本 fork 包名：**`@panando/dsh-prompt-library`**（当前 0.18.0）
+- 上游：<https://github.com/master1Sun/dsh-prompt-library> · npm `@sunjuntao/dsh-prompt-library@0.17.1`
+
+> **包名为什么不是上游那个**：发布账号 `panando-npm` 不属于 `@sunjuntao` 组织，往那个 scope 发会 403；
+> 本仓库既有的自研/派生插件统一发在 `@panando/` 下（dsh-pua、dsh-quote-sidechat、dsh-prompt-optimizer）。
+> 因此本 fork 改名为 `@panando/dsh-prompt-library`，版本从 0.17.1 起做了一次 minor bump（入口位置是行为可见的改动）。
+> 客户端模块 id（`window.__ModuleLoader__.load({id})`）与 `cordis.patch.yml` 的 `name` 都跟着改成新包名；
+> 其中构建脚本的 id 现在**直接读 package.json#name**，以后改名不会再漏。
 
 ## 为什么有这个 fork
 
@@ -72,6 +79,23 @@ npm test           # smoke-test:  jsdom 里跑 apply()，断言注册出的座�
                    #              入口卡片 → 点击弹独立面板 → 四个 Tab → 最大化/还原 → ✕/Esc 关闭
                    #              共 19 条断言（含「数据管理模块确实内嵌进面板」）
 npm run typecheck  # 需要 @deepseek-ai/* 的类型包，未装时会有 TS2307 噪声
+```
+
+## 发布到 npm
+
+```bash
+npm run build          # 先构建（prepublishOnly 里也会跑 build + test）
+npm pack --dry-run     # 看 tarball 内容
+npm publish --access public
+```
+
+发布后本地 profile 要从旧包名切到新包名（否则 DSH 会按旧名去加载、而包内的 patch 已声明新名）：
+
+```bash
+./scripts/link-plugin.sh dsh-prompt-library desktop --unlink   # 旧名软链（若已 rename 需手工删）
+rm ~/.dsh/profiles/desktop/node_modules/@sunjuntao/dsh-prompt-library   # 视情况：旧名软链/目录
+./scripts/link-plugin.sh dsh-prompt-library desktop            # 按新名建软链
+# 并把 ~/.dsh/profiles/desktop/package.json 的 bundles 里旧名 @sunjuntao/dsh-prompt-library 删掉
 ```
 
 ## 联调进 profile

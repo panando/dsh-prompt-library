@@ -1,10 +1,18 @@
 <div align="center">
 
-[🇨🇳 中文](./README.md) | 🌐 **English**
+[🇨🇳 中文](./README.zh.md) | 🌐 **English**
 
 </div>
 
-# dsh-prompt-library
+# dsh-prompt-library (@panando fork)
+
+> **This is a fork of [`@sunjuntao/dsh-prompt-library`](https://www.npmjs.com/package/@sunjuntao/dsh-prompt-library)** (original author master1Sun, MIT).
+>
+> What this fork changes:
+> 1. **The library entry moved from an injected button above the host's sidebar Settings button into a card at the bottom of Settings → Library settings**, which opens a standalone panel. The injected button (it appeared both above the settings navigation and in the bottom-left menu) is gone.
+> 2. Fixed **invisible SVG icons inside the dialog surface** (they were collapsed to 0 width by `scrollbar-gutter`).
+>
+> See [FORK.md](./FORK.md) for details, source provenance and build steps. Install the upstream package for the original behaviour.
 
 DSH (DeepSeek Harness) prompt library plugin: provides **prompt management**, **AI polish** and **persona customization** in the chat bar, helping you accumulate, reuse and continuously improve prompts.
 
@@ -13,7 +21,7 @@ DSH (DeepSeek Harness) prompt library plugin: provides **prompt management**, **
 ### Prompt Library
 
 - Manage frequently-used prompts (title + body + tags), with search, sorting, tag grouping and usage-count statistics
-- Entry 1: the "Library" menu button above the settings button in the sidebar opens a centered panel whose navigation reaches Data Management, Import/Export, Tags, Recycle Bin, Personas, and Skills
+- Entry 1: the "Library" card at the bottom of **Settings → Library settings** opens a standalone panel (850×800, maximizable, closes with ✕ / Esc) whose tabs switch between Data Management, Import/Export, Tags and Recycle Bin
 - Entry 2: the prompt-library button beside the chat input opens recent/frequent prompts with one click
 - **Insert**: appends to the existing content in the input box
 - **Overwrite**: directly replaces the whole draft with this prompt
@@ -47,7 +55,7 @@ Persona bodies live in the database (`prompts.db`: default persona in the meta t
 
 ### Settings
 
-Under DSH Settings → Prompt Library, adjust: AI model selection, panel size, library-menu button visibility, chat-bar button visibility/icon-only, `#` triggering, context recommendations, add-prompt-from-selection, maximum stored prompts, etc. Changes take effect immediately.
+Under DSH Settings → Library settings, adjust: AI model selection, panel size, chat-bar button visibility/icon-only, `#` triggering, context recommendations, add-prompt-from-selection, maximum stored prompts, etc. Changes take effect immediately.
 
 ## Data Storage
 
@@ -65,26 +73,28 @@ The library uses **SQLite** (`node:sqlite`); all other configs and logs are stor
 ## Installation
 
 ```bash
-dsh plugin --profile web add @sunjuntao/dsh-prompt-library
+dsh plugin --profile web add @panando/dsh-prompt-library
 ```
 
 ## Usage
 
-Start `dsh web`, click the "Library" menu button above the settings button in the sidebar to reach every feature panel; or use the prompt-library button beside the chat input, type `#` for the quick picker, and click "AI Polish" to polish your input with one click.
+Start `dsh web`, open **Settings → Library settings** and click the "Library" card at the bottom of the page to open the panel; or use the prompt-library button beside the chat input, type `#` for the quick picker, and click "AI Polish" to polish your input with one click.
 
 ## Development / Build
 
 ```bash
 npm install
-npm run deploy   # type check + build + sync to DSH (restart dsh web to take effect)
+npm run build   # build lib/client.js and lib/index.js
+npm run check   # node --check both bundles
+npm test        # jsdom: apply() smoke test + real settings-page render (23 assertions)
+
+# Link into the desktop profile for local development; refresh/restart DSH to apply
+../scripts/link-plugin.sh dsh-prompt-library
+# Revert: ../scripts/link-plugin.sh dsh-prompt-library --unlink
 ```
-
-## Screenshots
-
-![1789779289907](images/README/1789779289907.png)![1789779291686](images/README/1789779291686.png)![1789779294779](images/README/1789779294779.png)
 
 ## Author
 
-**master1Sun**
+Original author **master1Sun** (MIT): [github.com/master1Sun/dsh-prompt-library](https://github.com/master1Sun/dsh-prompt-library)
 
-- GitHub: [https://github.com/master1Sun/dsh-prompt-library](https://github.com/master1Sun/dsh-prompt-library)
+This fork is maintained by **panando**: only the entry-point placement and the dialog icon rendering were changed; prompt management / AI polish / persona features are kept as upstream.

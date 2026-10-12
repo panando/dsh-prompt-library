@@ -1,7 +1,7 @@
 {
-  "name": "@sunjuntao/dsh-prompt-library",
-  "version": "0.17.1",
-  "description": "DSH 提示词库插件：集中管理提示词（增删改查、标签分类、导入导出、AI 优化），聊天快捷收录与调用。 DSH Prompt Library plugin: manage prompts (CRUD, tags, import/export, AI polish), quick capture & reuse in chat.",
+  "name": "@panando/dsh-prompt-library",
+  "version": "0.18.0",
+  "description": "DSH 词库插件（@sunjuntao/dsh-prompt-library 的 fork）：集中管理提示词（增删改查、标签分类、导入导出、AI 优化），聊天快捷收录与调用。入口已收敛进「设置 → 词库设置」，不再向宿主侧边栏注入按钮。 Fork of @sunjuntao/dsh-prompt-library: manage prompts (CRUD, tags, import/export, AI polish), quick capture & reuse in chat; entry point moved into Settings.",
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/types/index.d.ts",
@@ -18,7 +18,8 @@
     "prompt",
     "prompt-library",
     "deepseek-harness",
-    "dsh-plugin"
+    "dsh-plugin",
+    "fork"
   ],
   "author": "master1Sun",
   "exports": {
@@ -34,7 +35,11 @@
   },
   "files": [
     "lib",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md",
+    "README.zh.md",
+    "FORK.md"
   ],
   "dsh": {
     "bundle": {

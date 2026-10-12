@@ -1,10 +1,19 @@
 <div align="center">
 
-🇨🇳 **中文** | [🌐 English](./README.en.md)
+🇨🇳 **中文** | [🌐 English](./README.md)
 
 </div>
 
-# dsh-prompt-library
+# dsh-prompt-library（@panando fork）
+
+> **这是 [`@sunjuntao/dsh-prompt-library`](https://www.npmjs.com/package/@sunjuntao/dsh-prompt-library) 的 fork**（原版作者 master1Sun，MIT）。
+>
+> 本 fork 的改动：
+> 1. **词库入口从「注入到宿主侧边栏设置按钮上方」改为「设置 → 词库设置」页底部的入口卡片**，点击弹出独立面板；
+>    那个注入按钮原本会同时出现在设置导航顶部与左下角菜单里，现已彻底移除。
+> 2. 顺带修好了**浮层内 SVG 图标不显示**（被 `scrollbar-gutter` 压成 0 宽）的问题。
+>
+> 改动细节、源码来源与构建方式见 [FORK.md](./FORK.md)。原版体验请安装上游包。
 
 DSH（DeepSeek Harness）词库插件：在聊天栏提供**提示词管理**、**AI 优化**与**人格定制**能力，帮你沉淀、复用和持续优化提示词。
 
@@ -13,7 +22,7 @@ DSH（DeepSeek Harness）词库插件：在聊天栏提供**提示词管理**、
 ### 词库
 
 - 管理常用提示词（标题 + 正文 + 标签），支持搜索、排序、标签分组、使用次数统计
-- 入口一：侧边栏设置按钮上方的「词库」菜单按钮，打开居中面板，左侧导航含数据管理、导入导出、标签、回收站、人格管理、技能管理
+- 入口一：**设置 → 词库设置**页底部的「词库」入口卡片，点击弹出独立面板（850×800，可最大化，✕ / Esc 关闭），面板内以 Tab 切换数据管理、导入导出、标签、回收站
 - 入口二：聊天输入框旁的词库按钮，一键打开最近/常用提示词列表
 - **插入**：追加到输入框已有内容之后
 - **覆盖**：用该提示词直接替换整段草稿
@@ -47,7 +56,7 @@ DSH（DeepSeek Harness）词库插件：在聊天栏提供**提示词管理**、
 
 ### 设置
 
-在 DSH 设置 → 词库调整：AI 模型选择、面板大小、词库菜单按钮显隐、聊天框按钮显隐/仅图标、`#` 触发、上下文推荐、选中添加提示词、提示词最大存储数量等，修改即时生效。
+在 DSH 设置 → 词库设置直达：AI 模型选择、面板大小、聊天框按钮显隐/仅图标、`#` 触发、上下文推荐、选中添加提示词、提示词最大存储数量等，修改即时生效。
 
 ## 数据存储
 
@@ -65,26 +74,28 @@ DSH（DeepSeek Harness）词库插件：在聊天栏提供**提示词管理**、
 ## 安装
 
 ```bash
-dsh plugin --profile web add @sunjuntao/dsh-prompt-library
+dsh plugin --profile web add @panando/dsh-prompt-library
 ```
 
 ## 使用
 
-启动 `dsh web`，点击侧边栏设置按钮上方的「词库」菜单进入各功能面板；或在聊天栏点「词库」按钮、输入 `#` 快速触发选择；点击「AI 优化」一键优化输入内容。
+启动 `dsh web`，进入 **设置 → 词库设置**，点击页面底部的「词库」入口卡片打开功能面板；或在聊天栏点「词库」按钮、输入 `#` 快速触发选择；点击「AI 优化」一键优化输入内容。
 
 ## 开发 / 构建
 
 ```bash
 npm install
-npm run deploy   # 类型检查 + 构建 + 同步到 DSH（需重启 dsh web 生效）
+npm run build   # 构建 lib/client.js 与 lib/index.js
+npm run check   # node --check 两份产物
+npm test        # jsdom 里跑 apply() + 真渲染设置页（23 条断言）
+
+# 联调：软链进 desktop profile，改完刷新/重启 DSH 即生效
+../scripts/link-plugin.sh dsh-prompt-library
+# 调完还原：../scripts/link-plugin.sh dsh-prompt-library --unlink
 ```
-
-## 效果图
-
-![1789779289907](images/README/1789779289907.png)![1789779291686](images/README/1789779291686.png)![1789779294779](images/README/1789779294779.png)
 
 ## 作者
 
-**master1Sun**
+原版作者 **master1Sun**（MIT）：[github.com/master1Sun/dsh-prompt-library](https://github.com/master1Sun/dsh-prompt-library)
 
-- GitHub: [https://github.com/master1Sun/dsh-prompt-library](https://github.com/master1Sun/dsh-prompt-library)
+本 fork 由 **panando** 维护：仅调整入口位置与浮层图标渲染，提示词管理 / AI 优化 / 人格 等功能逻辑沿用上游。

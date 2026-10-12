@@ -17,7 +17,8 @@ dom.window.__ModuleLoader__ = { load: (m) => { mod = m; } };
 dom.window.eval(readFileSync("lib/client.js", "utf8"));
 
 if (!mod) throw new Error("client.js 没有调用 window.__ModuleLoader__.load");
-if (mod.id !== "@sunjuntao/dsh-prompt-library") throw new Error("模块 id 不对：" + mod.id);
+const { name: pkgName } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+if (mod.id !== pkgName) throw new Error("模块 id 与 package.json#name 不一致：" + mod.id + " vs " + pkgName);
 
 /** @deepseek-ai/* 运行时包在测试里用万能桩替代（组件不渲染，只需要能取到属性）。 */
 const anyStub = new Proxy(function () {}, {
