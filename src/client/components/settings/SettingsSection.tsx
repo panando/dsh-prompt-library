@@ -30,6 +30,7 @@ import {
   type ClientAiSelectable,
 } from "../../utils/api.js";
 import { type PLTranslate, usePLT } from "../../utils/i18n.js";
+import { LibraryPanelContent } from "./LibraryPanelSection.js";
 
 const MONO =
   '"Microsoft YaHei", "PingFang SC", "Noto Sans SC", "SimHei", "黑体", sans-serif';
@@ -362,6 +363,8 @@ export function SettingsSection(props?: { t?: PLTranslate }): ReactNode {
   const [openPanel, setOpenPanel] = useState(false);
   const [openDisplay, setOpenDisplay] = useState(false);
   const [openAbout, setOpenAbout] = useState(false);
+  // 「词库」入口折叠状态（原注入式按钮移入本页；默认折叠，与其它分类一致）
+  const [openLibrary, setOpenLibrary] = useState(false);
   // 系统中可用的 AI provider 及模型列表（来自 harness LLM 服务，设置界面下拉选择用）
   const [aiSelectables, setAiSelectables] = useState<ClientAiSelectable[]>([]);
   // 当前已安装版本号（从 /version 轻量读取，用于「关于」信息行展示，如 v0.9.5）
@@ -573,12 +576,6 @@ export function SettingsSection(props?: { t?: PLTranslate }): ReactNode {
         onToggle={() => setOpenDisplay((v) => !v)}
       >
         <ToggleRow
-          label={T("pl.set.settingsAboveMenu")}
-          desc={T("pl.set.settingsAboveMenuDesc")}
-          checked={draft.settingsAboveMenuEnabled}
-          onChange={(v) => updateAndSave({ settingsAboveMenuEnabled: v })}
-        />
-        <ToggleRow
           label={T("pl.set.showComposerBtn")}
           desc={T("pl.set.showComposerBtnDesc")}
           checked={draft.showComposerButton}
@@ -753,6 +750,16 @@ export function SettingsSection(props?: { t?: PLTranslate }): ReactNode {
             <span>{T("pl.footer.disclaimer")}</span>
           </div>
         </div>
+      </ModuleCard>
+
+      {/* 分类模块六：词库 —— 入口从宿主「设置」按钮上方移入本页，展开即用四项功能 */}
+      <ModuleCard
+        title={T("pl.setModuleLibrary")}
+        desc={T("pl.setModuleLibraryDesc")}
+        open={openLibrary}
+        onToggle={() => setOpenLibrary((v) => !v)}
+      >
+        <LibraryPanelContent t={t} onRequestClose={() => setOpenLibrary(false)} />
       </ModuleCard>
     </div>
   );
