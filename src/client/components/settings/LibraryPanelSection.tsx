@@ -25,7 +25,6 @@ import {
 } from "../../utils/dialog-style.js";
 import { getTone, useThemeSync } from "../../utils/theme.js";
 import { DialogCloseButton } from "../common/DialogCloseButton.js";
-import { WindowToggleButton } from "../common/WindowToggleButton.js";
 import { PanelHeader } from "../common/PanelHeader.js";
 import { LexiconManagerModal } from "../data/LexiconManagerModal.js";
 import { ImportExportModal } from "../import-export/ImportExportModal.js";
@@ -92,6 +91,77 @@ const PANEL_CSS = `
 .pl-lib-tab[aria-selected="true"]{background:var(--dsw-alias-interactive-bg-active,rgba(127,127,127,.14))}
 ${PL_DIALOG_CSS}
 `;
+
+/**
+ * 最大化 / 还原按钮 —— 内联 SVG 图标，与上游那个浮动面板同款。
+ *
+ * 不用共享的 WindowToggleButton：它渲染的是文本字形 🗖 / 🗗（U+1F5D6 / U+1F5D7），
+ * 在宿主环境里缺字体时会被回退成一个「≡」似的怪符号（见 issue：图标样式不对）。
+ * ViewBox 24、描边 1.7，与上游 `buildPanel` 里手写的图标逐字一致。
+ */
+function MaximizeButton(props: {
+  maximized: boolean;
+  onToggle: () => void;
+  maximizeLabel: string;
+  restoreLabel: string;
+}): ReactNode {
+  const { maximized, onToggle, maximizeLabel, restoreLabel } = props;
+  const TONE = getTone();
+  const label = maximized ? restoreLabel : maximizeLabel;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={label}
+      data-tip={label}
+      style={{
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 26,
+        height: 26,
+        border: "none",
+        outline: "none",
+        borderRadius: 6,
+        background: "transparent",
+        color: TONE.muted,
+        cursor: "pointer",
+        transition:
+          "background-color .24s cubic-bezier(.22,1,.36,1), color .24s cubic-bezier(.22,1,.36,1)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = "var(--dsw-alias-interactive-bg-hover)";
+        e.currentTarget.style.color = TONE.text;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+        e.currentTarget.style.color = TONE.muted;
+      }}
+    >
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {maximized ? (
+          <>
+            <rect x="5" y="9" width="10" height="10" rx="2" />
+            <path d="M9 9V5h10v10h-4" />
+          </>
+        ) : (
+          <rect x="5" y="5" width="14" height="14" rx="2" />
+        )}
+      </svg>
+    </button>
+  );
+}
 
 /** 按导航项渲染对应功能：能内嵌的 Modal 交给 container，纯面板直接渲染。 */
 function renderModule(
@@ -213,7 +283,7 @@ export function LibraryPanelModal(props: {
           >
             {T("pl.title")}
           </strong>
-          <WindowToggleButton
+          <MaximizeButton
             maximized={maximized}
             onToggle={() => setMaximized((v) => !v)}
             maximizeLabel={T("pl.windowMaximize")}

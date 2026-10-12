@@ -155,13 +155,25 @@ check(!boom2, "面板打开后渲染无异常", boom2 ? "\n" + boom2.textContent
 const panelText = panel?.textContent || "";
 check(panelText.includes("提示词列表"), "数据管理模块已内嵌进面板", panelText.includes("提示词列表") ? "" : panelText.slice(0, 120));
 
+// Tab 图标：必须是真实的 SVG 节点（而不是空色块）
+const tabIcons = [...document.querySelectorAll('[role="tab"]')].map((el) => {
+  const svg = el.querySelector("svg");
+  return { hasSvg: Boolean(svg), children: svg ? svg.children.length : 0 };
+});
+check(tabIcons.every((t) => t.hasSvg && t.children > 0), "四个 Tab 的图标都是真实 SVG",
+  JSON.stringify(tabIcons));
+
 // 最大化 / 还原
 const maxBtn = panel ? [...panel.querySelectorAll("button")].find((b) => (b.getAttribute("data-tip") || "").includes("最大化")) : null;
 check(Boolean(maxBtn), "面板有最大化按钮");
+// 图标必须是上游浮动面板同款的内联 SVG 方块，而不是 🗖 文本字形（该字形在宿主环境会回退成怪符号）
+check(Boolean(maxBtn?.querySelector("svg rect")), "最大化图标是 SVG 方块（非 🗖 字形）",
+  maxBtn ? JSON.stringify(maxBtn.innerHTML.slice(0, 90)) : "");
 maxBtn?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
 await tick();
 check(Boolean(document.querySelector(".pl-dialog--max")), "点击最大化后面板铺满");
 const restoreBtn = [...document.querySelectorAll("button")].find((b) => (b.getAttribute("data-tip") || "").includes("还原"));
+check(Boolean(restoreBtn?.querySelector("svg path")), "还原图标是 SVG 双方块（非 🗗 字形）");
 restoreBtn?.dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
 await tick();
 check(!document.querySelector(".pl-dialog--max"), "可还原为居中面板");
