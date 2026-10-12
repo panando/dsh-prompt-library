@@ -1,6 +1,6 @@
 {
   "name": "@panando/dsh-prompt-library",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "DSH 词库插件（@sunjuntao/dsh-prompt-library 的 fork）：集中管理提示词（增删改查、标签分类、导入导出、AI 优化），聊天快捷收录与调用。入口已收敛进「设置 → 词库设置」，不再向宿主侧边栏注入按钮。 Fork of @sunjuntao/dsh-prompt-library: manage prompts (CRUD, tags, import/export, AI polish), quick capture & reuse in chat; entry point moved into Settings.",
   "type": "module",
   "main": "./lib/index.js",
@@ -92,13 +92,12 @@
     "jsdom": "^29.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "js-yaml": "5.3.0"
   },
   "license": "MIT",
   "engines": {
     "node": ">=22.19"
   },
-  "dependencies": {
-    "js-yaml": "5.3.0"
-  }
+  "dependencies": {}
 }
