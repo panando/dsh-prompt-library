@@ -8,7 +8,7 @@
 import type { Context } from "@deepseek-ai/cordis";
 import { makePromptRoutes } from "./host/routes.js";
 import { dataChangedUpgradeRoute } from "./host/events.js";
-import { welcomePromptOnce } from "./host/store.js";
+import { getSettingsSync, welcomePromptOnce } from "./host/store.js";
 import {
   getCurrentSessionScope,
   getSessionActivePromptIds,
@@ -147,12 +147,16 @@ export function apply(ctx: Context) {
 
   // 把「身份人格 + 会话上下文」注入当前聊天。为让人格/技能不被其他插件冲掉，拆成两个 section。
   //
-  // 重要：宿主（@deepseek-ai/dsh-system-prompt）已把全局槽位「deployment:persona」(order 0)
-  // 写死在 systemPrompt 服务里。section 的作用域由**调用它的上下文**决定（dsh-scope 的 scopeOf）：
-  //  - 若像旧代码那样在「插件全局上下文」里注册同名 section → 与宿主全局槽位重名抛错，注入整段失效；
-  //  - 正确做法是在「agent/created」时，用该 agent 的 scoped context（agent.ctx）经 inject 注册，
-  //    此时 section 落入该会话的 scoped layer，同名即 shadow 宿主默认人格，成为该会话最权威身份，
-  //    且随 agent 销毁自动回收。
+  // 注意：宿主（@deepseek-ai/dsh-system-prompt）自身的人格槽位是「deployment:persona-prefix」(order 0)
+  // 与「deployment:persona-suffix」(order 10200)；本插件用「deployment:persona」这个名字，是**追加**一段
+  // 人格，不是替换宿主的人格。section 的作用域由调用它的上下文决定（dsh-scope 的 scopeOf）：
+  //  - 若在「插件全局上下文」里注册 section，会与其它插件的全局注册重名而抛错；
+  //  - 因此在「agent/created」时用该 agent 的 scoped context（agent.ctx）注册，section 落入该会话的
+  //    scoped layer，且随 agent 销毁自动回收。
+  //
+  // 注入总开关：设置项 personaInjectEnabled（默认关闭）。关闭时本 section 的正文恒为空串，
+  // 宿主的 renderPrompt 会丢弃空 section，因此新会话不再被塞入任何人格文本；
+  // 开关每次组装都重新读取 settings.json，改动对下一条消息立即生效。
   const PERSONA_SECTION_NAME = "deployment:persona";
   // 解析组装上下文 → 会话 id 与工作目录（供按会话 / 按工作区-项目绑定人格与技能）。
   // 真正会话 id 在 agent.session.id，工作目录在 agent.session.header.cwd；缺失时回退到最近活跃会话。
@@ -165,8 +169,10 @@ export function apply(ctx: Context) {
     recordActiveSessionCwd(sessionId, cwd);
     return { sessionId, cwd };
   };
-  // 人格 section 正文（order 0）：会话 id 绑定优先、工作目录路径绑定回退；无命中时走全局默认人格。
+  // 人格 section 正文（order 0）：总开关关闭时返回空串（= 不注入）；
+  // 开启时：会话 id 绑定优先、工作目录路径绑定回退，无命中则走全局默认人格。
   const personaSectionText = (context: unknown): string => {
+    if (!getSettingsSync().personaInjectEnabled) return "";
     const { sessionId, cwd } = resolveAssemblySession(context);
     const personaId = resolvePersonaForSession(sessionId || null, cwd || null);
     return soulSystemSync(personaId);

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 词库设置面板 — 注册到 harness 的 settings.section 插槽。
  *
  * 在 DSH 设置界面中显示插件的所有配置项：
@@ -695,6 +695,12 @@ export function SettingsSection(props?: { t?: PLTranslate }): ReactNode {
           desc={T("pl.set.contextRecommendDesc")}
           checked={draft.contextRecommendEnabled}
           onChange={(v) => updateAndSave({ contextRecommendEnabled: v })}
+        />
+        <ToggleRow
+          label={T("pl.set.personaInject")}
+          desc={T("pl.set.personaInjectDesc")}
+          checked={draft.personaInjectEnabled}
+          onChange={(v) => updateAndSave({ personaInjectEnabled: v })}
         />
       </ModuleCard>
 

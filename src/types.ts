@@ -189,6 +189,11 @@ export interface PluginSettings {
   selectionAddEnabled: boolean;
   /** 是否启用基于聊天上下文的提示词推荐（显示在输入框上方，输入框为空时展示）。 */
   contextRecommendEnabled: boolean;
+  /**
+   * 是否把人格（SOUL 正文）注入到每个会话的系统提示里。默认关闭：
+   * 关闭时本插件不向任何会话注入人格文本，会话沿用宿主自带的人格设定。
+   */
+  personaInjectEnabled: boolean;
   /** AI 调用使用的 provider 路由（留空则自动发现）。 */
   aiProvider: string;
   /** AI 调用使用的模型 id（留空则自动发现）。 */
@@ -212,5 +217,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   tildaTriggerEnabled: true, // 是否启用输入 ~ 触发词库选择
   selectionAddEnabled: true, // 是否启用选中文本后浮动「添加提示词」入口
   contextRecommendEnabled: true, // 是否启用基于聊天上下文的提示词推荐
+  personaInjectEnabled: false, // 是否把人格（SOUL 正文）注入会话系统提示；默认关闭
   dataManagementEnabled: true, // 数据管理：卡片菜单/词库菜单展示「数据管理」入口
 };

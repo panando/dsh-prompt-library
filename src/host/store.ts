@@ -1447,6 +1447,32 @@ export function getSettings(): Promise<PluginSettings> {
 }
 
 /**
+ * 同步读取设置：供「组装 system prompt」这类同步热路径使用
+ * （宿主的 section text 回调是同步函数，无法 await getSettings）。
+ * 每次都读一次 settings.json（文件很小），因此设置改动立即对下一条消息生效；
+ * 文件缺失或损坏时回退默认值，不抛错。不做旧系统 settings.yaml 迁移：
+ * 迁移由异步的 getSettings 负责，界面读取一次即完成。
+ */
+export function getSettingsSync(): PluginSettings {
+  try {
+    const text = readFileSync(pluginSettingsPath(), "utf8");
+    const parsed: unknown = JSON.parse(stripBom(text));
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      const ns = (parsed as Record<string, unknown>)[SETTINGS_NAMESPACE];
+      if (typeof ns === "object" && ns !== null && !Array.isArray(ns)) {
+        return stripPersistExcluded({
+          ...DEFAULT_SETTINGS,
+          ...(ns as Partial<PluginSettings>),
+        });
+      }
+    }
+  } catch {
+    /* 文件缺失/格式错误 → 回退默认值 */
+  }
+  return stripPersistExcluded({ ...DEFAULT_SETTINGS });
+}
+
+/**
  * 读取宿主界面语言偏好（`~/.dsh/settings.yaml` 的 `locale.preference`）。
  * 供宿主侧文案（AI 提示词语言等）在启动时按语言选择；读取失败返回空字符串。
  */
