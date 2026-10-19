@@ -1,6 +1,6 @@
 # dsh-prompt-library（@panando fork）
 
-- 本 fork 包名：**`@panando/dsh-prompt-library`**（当前 0.18.0）
+- 本 fork 包名：**`@panando/dsh-prompt-library`**（当前 0.19.0）
 - 上游：<https://github.com/master1Sun/dsh-prompt-library> · npm `@sunjuntao/dsh-prompt-library@0.17.1`
 
 > **包名为什么不是上游那个**：发布账号 `panando-npm` 不属于 `@sunjuntao` 组织，往那个 scope 发会 403；
@@ -47,6 +47,27 @@
 
 如需把「人格管理 / 技能管理」真正用起来，只需在 `LibraryPanelSection.tsx` 的 `NAV_ITEMS`
 里补两项、并在 `renderModule()` 里接上即可（这两个组件已支持 `container` 内嵌模式）。
+
+## 0.19.0：人格注入改为可选（默认关闭）
+
+上游在每次 `agent/created` 时，把人格正文作为一段系统提示注册进新会话（section 名
+`deployment:persona`，见 `src/index.ts` 的 `PERSONA_SECTION_NAME`）；人格正文缺失时
+`src/host/character.ts` 的 `ensureSoulFile()` 还会把默认模板写回数据库。结果是**每个新会话都
+带一段「词库助手」人设**，而且设置页里没有任何开关能关掉它（`routes.ts` 里更新默认人格直接
+返回 400，客户端也把默认人格的编辑按钮禁用）。
+
+0.19.0 的改动：
+
+| 位置 | 改动 |
+| --- | --- |
+| `src/types.ts` | `PluginSettings.personaInjectEnabled`，默认 `false` |
+| `src/index.ts` | `personaSectionText()` 在开关关闭时返回空串；宿主 `renderPrompt` 会丢弃空 section，等于不注入 |
+| `src/host/store.ts` | 新增 `getSettingsSync()`：系统提示是**同步**组装的，读不了异步的 `getSettings()`，所以另开一个同步读 `settings.json` 的入口，解析失败回退默认值 |
+| `src/client/components/settings/SettingsSection.tsx` | 「聊天交互」新增开关「注入人格到会话」 |
+| `src/client/utils/i18n.ts` | 中英文案 `pl.set.personaInject` / `pl.set.personaInjectDesc` |
+
+开关打开后，注入顺序仍是「会话绑定 → 工作区/项目绑定 → 默认人格」；开关关闭时人格仍参与
+「AI 优化」的约束，只是不再进入会话。修改对下一条消息生效，不必重启 DSH。
 
 ## 源码来源（重要）
 

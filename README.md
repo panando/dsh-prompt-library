@@ -11,6 +11,7 @@
 > What this fork changes:
 > 1. **The library entry moved from an injected button above the host's sidebar Settings button into a card at the bottom of Settings → Library settings**, which opens a standalone panel. The injected button (it appeared both above the settings navigation and in the bottom-left menu) is gone.
 > 2. Fixed **invisible SVG icons inside the dialog surface** (they were collapsed to 0 width by `scrollbar-gutter`).
+> 3. **Persona injection is now opt-in and off by default**: new sessions no longer get a "prompt librarian" persona template pushed into them. Turn it on under **Settings → Library settings → Chat interaction → "Inject persona into sessions"**. See [Persona](#persona-ai-read-only-reference) below.
 >
 > See [FORK.md](./FORK.md) for details, source provenance and build steps. Install the upstream package for the original behaviour.
 
@@ -45,6 +46,8 @@ DSH (DeepSeek Harness) prompt library plugin: provides **prompt management**, **
 
 Persona bodies live in the database (`prompts.db`: default persona in the meta table, custom ones in the personas table), constraining every AI call and the session they apply to, forming a stable assistant persona. A complete default template is seeded automatically when missing; its content is **manually maintained by the user**, and AI only reads it without modifying it on its own. Multiple personas (SOUL) can be created and bound per workspace/project — new sessions opened under a matched path automatically adopt that persona.
 
+**Session injection is off by default**: the persona is no longer pushed into new sessions' system prompt automatically. Turn on **Settings → Library settings → Chat interaction → "Inject persona into sessions"**, and injection then resolves in this order: session binding → workspace/project binding → default persona. While it is off, the persona still constrains "AI Polish", it just never appears in a session. Changes apply from the next message, no restart needed.
+
 
 | Storage | Meaning | Purpose                                   |
 | ------- | ------- | ----------------------------------------- |
@@ -55,7 +58,7 @@ Persona bodies live in the database (`prompts.db`: default persona in the meta t
 
 ### Settings
 
-Under DSH Settings → Library settings, adjust: AI model selection, panel size, chat-bar button visibility/icon-only, `#` triggering, context recommendations, add-prompt-from-selection, maximum stored prompts, etc. Changes take effect immediately.
+Under DSH Settings → Library settings, adjust: AI model selection, panel size, chat-bar button visibility/icon-only, `#` triggering, context recommendations, **persona injection into sessions (off by default)**, add-prompt-from-selection, maximum stored prompts, etc. Changes take effect immediately.
 
 ## Data Storage
 
@@ -97,4 +100,4 @@ npm test        # jsdom: apply() smoke test + real settings-page render (23 asse
 
 Original author **master1Sun** (MIT): [github.com/master1Sun/dsh-prompt-library](https://github.com/master1Sun/dsh-prompt-library)
 
-This fork is maintained by **panando**: only the entry-point placement and the dialog icon rendering were changed; prompt management / AI polish / persona features are kept as upstream.
+This fork is maintained by **panando**: the entry-point placement, the dialog icon rendering, and making persona session injection optional (off by default) were changed; prompt management / AI polish / the persona library are kept as upstream.
